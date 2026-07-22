@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -21,7 +21,10 @@ export const providersTable = pgTable("providers", {
   digitalSignature: text("digital_signature"),
   flagged: boolean("flagged").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("providers_kyc_status_idx").on(table.kycStatus),
+  index("providers_onboarding_step_idx").on(table.onboardingStep),
+]);
 
 export const insertProviderSchema = createInsertSchema(providersTable).omit({ id: true, createdAt: true });
 export type InsertProvider = z.infer<typeof insertProviderSchema>;
