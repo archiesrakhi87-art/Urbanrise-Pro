@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { gte } from "drizzle-orm";
+import { eq, ne, gte, count, countDistinct, sql } from "drizzle-orm";
 import { db, bookingsTable, usersTable, providersTable, disputesTable, reviewsTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -15,47 +15,99 @@ router.get("/admin/metrics", async (req, res): Promise<void> => {
     return;
   }
 
-  const allBookings = await db.select().from(bookingsTable);
-  const allUsers = await db.select().from(usersTable);
-  const allProviders = await db.select().from(providersTable);
-  const allDisputes = await db.select().from(disputesTable);
-  const allReviews = await db.select().from(reviewsTable);
-
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const thisMonthBookings = allBookings.filter((b) => b.createdAt >= startOfMonth);
-  const thisMonthReviews = allReviews.filter((r) => r.createdAt >= startOfMonth);
+  // Run all independent queries in parallel
+  const [
+    bookingsByStatusRows,
+    activeProvidersRows,
+    activeResidentsRows,
+    repeatRateRows,
+    bookingsThisMonthRows,
+    reviewsThisMonthRows,
+    openDisputesRows,
+  ] = await Promise.all([
+    // Bookings by status: GROUP BY instead of full table scan
+    db
+      .select({ status: bookingsTable.status, cnt: count() })
+      .from(bookingsTable)
+      .groupBy(bookingsTable.status),
 
+    // Active providers: COUNT with WHERE instead of loading all rows
+    db
+      .select({ cnt: count() })
+      .from(providersTable)
+      .where(eq(providersTable.kycStatus, "verified")),
+
+    // Active residents: COUNT DISTINCT with JOIN instead of JS filter
+    db
+      .select({ cnt: countDistinct(bookingsTable.residentId) })
+      .from(bookingsTable)
+      .innerJoin(usersTable, eq(bookingsTable.residentId, usersTable.id))
+      .where(eq(usersTable.role, "resident")),
+
+    // Repeat booking rate: CTE-style subquery, no full table scan in JS
+    db.execute(sql`
+      WITH booking_counts AS (
+        SELECT resident_id, COUNT(*) AS cnt
+        FROM bookings
+        GROUP BY resident_id
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE cnt >= 2) AS repeat_residents,
+        COUNT(*)                          AS total_residents
+      FROM booking_counts
+    `),
+
+    // Bookings this month: COUNT with WHERE
+    db
+      .select({ cnt: count() })
+      .from(bookingsTable)
+      .where(gte(bookingsTable.createdAt, startOfMonth)),
+
+    // Reviews this month: COUNT with WHERE
+    db
+      .select({ cnt: count() })
+      .from(reviewsTable)
+      .where(gte(reviewsTable.createdAt, startOfMonth)),
+
+    // Open disputes: COUNT with WHERE
+    db
+      .select({ cnt: count() })
+      .from(disputesTable)
+      .where(ne(disputesTable.status, "resolved")),
+  ]);
+
+  // Reconstruct bookingsByStatus map from GROUP BY result
   const bookingsByStatus: Record<string, number> = {};
-  for (const b of allBookings) {
-    bookingsByStatus[b.status] = (bookingsByStatus[b.status] ?? 0) + 1;
+  let totalBookings = 0;
+  for (const row of bookingsByStatusRows) {
+    bookingsByStatus[row.status] = Number(row.cnt);
+    totalBookings += Number(row.cnt);
   }
 
-  const activeProviders = allProviders.filter((p) => p.kycStatus === "verified").length;
+  const activeProviders = Number(activeProvidersRows[0]?.cnt ?? 0);
+  const activeResidents = Number(activeResidentsRows[0]?.cnt ?? 0);
 
-  const residentIdsWithBookings = new Set(allBookings.map((b) => b.residentId));
-  const activeResidents = allUsers.filter((u) => u.role === "resident" && residentIdsWithBookings.has(u.id)).length;
-
-  const bookingCountsByResident: Record<number, number> = {};
-  for (const b of allBookings) {
-    bookingCountsByResident[b.residentId] = (bookingCountsByResident[b.residentId] ?? 0) + 1;
-  }
-  const repeatResidents = Object.values(bookingCountsByResident).filter((count) => count >= 2).length;
-  const totalResidentsWithBookings = Object.keys(bookingCountsByResident).length;
+  const repeatRateRow = repeatRateRows.rows[0] as { repeat_residents: string; total_residents: string };
+  const repeatResidents = Number(repeatRateRow?.repeat_residents ?? 0);
+  const totalResidentsWithBookings = Number(repeatRateRow?.total_residents ?? 0);
   const repeatBookingRate = totalResidentsWithBookings > 0 ? repeatResidents / totalResidentsWithBookings : 0;
 
-  const openDisputes = allDisputes.filter((d) => d.status !== "resolved").length;
+  const bookingsThisMonth = Number(bookingsThisMonthRows[0]?.cnt ?? 0);
+  const reviewsThisMonth = Number(reviewsThisMonthRows[0]?.cnt ?? 0);
+  const openDisputes = Number(openDisputesRows[0]?.cnt ?? 0);
 
   res.json({
-    totalBookings: allBookings.length,
+    totalBookings,
     bookingsByStatus,
     activeProviders,
     activeResidents,
     repeatBookingRate,
-    bookingsThisMonth: thisMonthBookings.length,
-    reviewsThisMonth: thisMonthReviews.length,
+    bookingsThisMonth,
+    reviewsThisMonth,
     openDisputes,
   });
 });
@@ -71,7 +123,11 @@ router.get("/admin/metrics/onboarding-funnel", async (req, res): Promise<void> =
     return;
   }
 
-  const allProviders = await db.select().from(providersTable);
+  // GROUP BY onboardingStep instead of loading all provider rows
+  const stepCountRows = await db
+    .select({ step: providersTable.onboardingStep, cnt: count() })
+    .from(providersTable)
+    .groupBy(providersTable.onboardingStep);
 
   const stepLabels = [
     "Phone/OTP",
@@ -84,11 +140,24 @@ router.get("/admin/metrics/onboarding-funnel", async (req, res): Promise<void> =
     "Submitted",
   ];
 
-  const funnel = stepLabels.map((label, index) => ({
-    step: index,
-    label,
-    count: allProviders.filter((p) => p.onboardingStep >= index).length,
-  }));
+  // Build a map of exact-step counts, then compute cumulative counts (>= step)
+  const exactCounts: Record<number, number> = {};
+  for (const row of stepCountRows) {
+    exactCounts[row.step] = Number(row.cnt);
+  }
+
+  // Total providers for cumulative calculation
+  const total = Object.values(exactCounts).reduce((sum, n) => sum + n, 0);
+
+  // Cumulative count for step N = number of providers with onboardingStep >= N
+  // = total - sum of counts for steps 0..(N-1)
+  const funnel = stepLabels.map((label, index) => {
+    let belowCount = 0;
+    for (let s = 0; s < index; s++) {
+      belowCount += exactCounts[s] ?? 0;
+    }
+    return { step: index, label, count: total - belowCount };
+  });
 
   res.json(funnel);
 });
