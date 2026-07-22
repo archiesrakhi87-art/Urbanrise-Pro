@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSendOtp, useVerifyOtp, getGetMeQueryKey, useGetMe } from "@workspace/api-client-react";
@@ -37,15 +37,20 @@ export default function Login() {
   const sendOtpMut = useSendOtp();
   const verifyOtpMut = useVerifyOtp();
 
-  // If already logged in, redirect (must be in useEffect — calling setLocation
-  // during render causes an infinite re-render loop)
+  // Guard: only redirect once per mount to avoid bounce loops if the session
+  // hasn't propagated yet (e.g. RequireAuth sends us back to /login while the
+  // cookie is still being written).
+  const redirectedRef = useRef(false);
+
   useEffect(() => {
+    if (redirectedRef.current) return;
     if (user && !isUserLoading) {
+      redirectedRef.current = true;
       if (user.role === "resident") setLocation("/");
       else if (user.role === "provider") setLocation("/provider/dashboard");
       else if (user.role === "admin") setLocation("/admin/metrics");
     }
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, setLocation]);
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
