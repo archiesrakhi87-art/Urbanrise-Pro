@@ -26,6 +26,7 @@ import AdminDisputes from '@/pages/admin/disputes';
 import AdminPartners from '@/pages/admin/partners';
 
 import HallOfFame from '@/pages/public/hall-of-fame';
+import LocalPartners from '@/pages/public/local-partners';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,11 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/hall-of-fame" component={HallOfFame} />
+      <Route path="/local-partners">
+        <Shell title="Local Partners">
+          <LocalPartners />
+        </Shell>
+      </Route>
 
       {/* Resident Routes */}
       <Route path="/">

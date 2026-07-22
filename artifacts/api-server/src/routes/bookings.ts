@@ -8,6 +8,7 @@ import {
   UpdateBookingStatusParams,
   UpdateBookingStatusBody,
 } from "@workspace/api-zod";
+import { logEvent } from "../lib/events";
 
 const router: IRouter = Router();
 
@@ -89,6 +90,13 @@ router.post("/bookings", async (req, res): Promise<void> => {
     .insert(bookingsTable)
     .values({ ...parsed.data, residentId: userId, status: "requested" })
     .returning();
+
+  logEvent("booking.created", {
+    bookingId: booking.id,
+    residentId: userId,
+    providerId: booking.providerId,
+    serviceCategoryId: booking.serviceCategoryId,
+  });
 
   res.status(201).json(await formatBooking(booking));
 });
@@ -208,6 +216,23 @@ router.patch("/bookings/:id/status", async (req, res): Promise<void> => {
         .where(eq(providersTable.id, booking.providerId));
     }
   }
+
+  // Fire lifecycle event for every status transition
+  const eventName =
+    body.data.status === "confirmed"   ? "booking.confirmed"  :
+    body.data.status === "completed"   ? "booking.completed"  :
+    body.data.status === "cancelled"   ? "booking.cancelled"  :
+    body.data.status === "disputed"    ? "booking.disputed"   :
+    "booking.status_changed";
+
+  logEvent(eventName, {
+    bookingId: booking.id,
+    residentId: booking.residentId,
+    providerId: booking.providerId,
+    fromStatus: existing.status,
+    toStatus: body.data.status,
+    changedByRole: userRole ?? "unknown",
+  });
 
   res.json(await formatBooking(booking));
 });

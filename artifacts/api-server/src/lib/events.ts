@@ -6,12 +6,24 @@ export type EventName =
   | "provider.approved"
   | "provider.rejected"
   | "provider.badge_assigned"
-  | "provider.document_uploaded";
+  | "provider.document_uploaded"
+  | "booking.created"
+  | "booking.confirmed"
+  | "booking.completed"
+  | "booking.cancelled"
+  | "booking.disputed"
+  | "booking.status_changed";
 
 export interface EventPayload {
   userId?: number;
   providerId?: number;
   adminId?: number;
+  residentId?: number;
+  bookingId?: number;
+  serviceCategoryId?: number;
+  fromStatus?: string;
+  toStatus?: string;
+  changedByRole?: string;
   step?: number;
   docType?: string;
   badge?: string;

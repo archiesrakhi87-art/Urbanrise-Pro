@@ -104,7 +104,7 @@ router.get("/providers", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { serviceCategory, city, badge, limit = 20, offset = 0 } = params.data;
+  const { serviceCategory, city, language, badge, minPrice, maxPrice, limit = 20, offset = 0 } = params.data;
 
   const allProviders = await db
     .select({ provider: providersTable, user: usersTable })
@@ -122,8 +122,36 @@ router.get("/providers", async (req, res): Promise<void> => {
   if (city) {
     filtered = filtered.filter(({ user }) => user.city?.toLowerCase().includes(city.toLowerCase()));
   }
+  if (language) {
+    filtered = filtered.filter(({ provider }) =>
+      provider.languagesSpoken.some((l) => l.toLowerCase().includes(language.toLowerCase()))
+    );
+  }
   if (badge) {
     filtered = filtered.filter(({ provider }) => provider.badgeTags.includes(badge));
+  }
+  if (minPrice != null || maxPrice != null) {
+    // priceList is stored as a JSON text string; parse it and extract all numeric values.
+    // Format expected: { "ServiceName": 500, ... } or { "ServiceName": "500", ... }
+    // If parsing fails or no numeric values found, include the provider (safe default).
+    filtered = filtered.filter(({ provider }) => {
+      if (!provider.priceList) return true; // no price set → include by default
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(provider.priceList);
+      } catch {
+        return true; // malformed JSON → include by default
+      }
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return true;
+      const values = Object.values(parsed as Record<string, unknown>)
+        .map((v) => (typeof v === "number" ? v : typeof v === "string" ? parseFloat(v) : NaN))
+        .filter((n) => Number.isFinite(n));
+      if (values.length === 0) return true; // no extractable prices → include by default
+      const lowestPrice = Math.min(...values);
+      if (minPrice != null && lowestPrice < minPrice) return false;
+      if (maxPrice != null && lowestPrice > maxPrice) return false;
+      return true;
+    });
   }
 
   const paginated = filtered.slice(Number(offset), Number(offset) + Number(limit));

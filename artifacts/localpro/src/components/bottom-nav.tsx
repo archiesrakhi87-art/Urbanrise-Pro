@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, ClipboardList, User, LayoutDashboard, Award } from "lucide-react";
+import { Home, ClipboardList, User, LayoutDashboard, Award, Building2 } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
 import { useAuth } from "@/components/auth-provider";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ export function BottomNav() {
   const residentNav = [
     { href: "/", label: t("nav.home"), icon: Home },
     { href: "/bookings", label: t("nav.bookings"), icon: ClipboardList },
+    { href: "/local-partners", label: "Partners", icon: Building2 },
     { href: "/profile", label: t("nav.profile"), icon: User },
   ];
 
