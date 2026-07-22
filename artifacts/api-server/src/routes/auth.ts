@@ -6,6 +6,7 @@ import {
   VerifyOtpBody,
 } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { logEvent } from "../lib/events";
 
 const router: IRouter = Router();
 
@@ -45,6 +46,23 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
       .insert(usersTable)
       .values({ phone, role: newRole, languagePref: "en", referralCode: newReferralCode, referredByCode: referralCode ?? null })
       .returning();
+
+    // Award referral points to the referrer (10 points per successful signup)
+    if (referralCode) {
+      const [referrer] = await db.select().from(usersTable).where(eq(usersTable.referralCode, referralCode));
+      if (referrer) {
+        const REFERRAL_POINTS = 10;
+        await db
+          .update(usersTable)
+          .set({ referralPoints: referrer.referralPoints + REFERRAL_POINTS })
+          .where(eq(usersTable.id, referrer.id));
+        logEvent("referral.signup", {
+          referrerId: referrer.id,
+          newUserId: user.id,
+          pointsAwarded: REFERRAL_POINTS,
+        });
+      }
+    }
   }
 
   // Admin accounts must use the protected /auth/admin-login endpoint

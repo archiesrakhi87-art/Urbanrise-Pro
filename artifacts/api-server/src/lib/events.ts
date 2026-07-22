@@ -16,7 +16,10 @@ export type EventName =
   | "review.submitted"
   | "trust.provider_flagged"
   | "dispute.opened"
-  | "dispute.status_changed";
+  | "dispute.status_changed"
+  | "module.completed"
+  | "badge.unlocked"
+  | "referral.signup";
 
 export interface EventPayload {
   userId?: number;
@@ -37,6 +40,11 @@ export interface EventPayload {
   disputeId?: number;
   issueType?: string;
   lowRatingCount?: number;
+  moduleId?: number;
+  badgesTotal?: number;
+  referrerId?: number;
+  newUserId?: number;
+  pointsAwarded?: number;
 }
 
 export function logEvent(event: EventName, payload: EventPayload = {}): void {

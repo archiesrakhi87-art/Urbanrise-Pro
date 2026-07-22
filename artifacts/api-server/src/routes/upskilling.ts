@@ -6,6 +6,7 @@ import {
   GetUpskillingModuleParams,
   CompleteUpskillingModuleParams,
 } from "@workspace/api-zod";
+import { logEvent } from "../lib/events";
 
 const router: IRouter = Router();
 
@@ -109,6 +110,20 @@ router.post("/upskilling/modules/:id/complete", async (req, res): Promise<void> 
       completed: true,
       completedAt: new Date(),
       badgeUnlocked,
+    });
+  }
+
+  logEvent("module.completed", {
+    providerId: provider.id,
+    userId,
+    moduleId: params.data.id,
+  });
+
+  if (badgeUnlocked) {
+    logEvent("badge.unlocked", {
+      providerId: provider.id,
+      userId,
+      badgesTotal: allCompleted.length + 1,
     });
   }
 
