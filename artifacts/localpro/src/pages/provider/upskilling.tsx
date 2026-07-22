@@ -1,36 +1,21 @@
-import { useListUpskillingModules, useGetMyUpskillingProgress, useCompleteUpskillingModule, getGetMyUpskillingProgressQueryKey } from "@workspace/api-client-react";
+import { useListUpskillingModules, useGetMyUpskillingProgress } from "@workspace/api-client-react";
 import { useLanguage } from "@/components/language-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Award, PlayCircle, CheckCircle2, Lock } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2, Award, PlayCircle, CheckCircle2 } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function ProviderUpskilling() {
   const { t } = useLanguage();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: modules, isLoading: isModsLoading } = useListUpskillingModules();
   const { data: progress, isLoading: isProgLoading } = useGetMyUpskillingProgress();
-  const completeMut = useCompleteUpskillingModule();
 
   if (isModsLoading || isProgLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
-
-  const handleComplete = (moduleId: number) => {
-    completeMut.mutate({ id: moduleId }, {
-      onSuccess: () => {
-        toast({ title: "Module Completed!", description: "Keep up the great work." });
-        queryClient.invalidateQueries({ queryKey: getGetMyUpskillingProgressQueryKey() });
-        // Also invalidate dashboard to refresh progress there, though wouter unmounts anyway usually.
-        queryClient.invalidateQueries(); 
-      },
-      onError: () => toast({ title: "Error", variant: "destructive" })
-    });
-  };
 
   return (
     <div className="p-4 space-y-6">
@@ -94,14 +79,23 @@ export default function ProviderUpskilling() {
                           size="sm" 
                           variant="outline" 
                           className="w-full text-xs h-8 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          onClick={() => handleComplete(mod.id)}
-                          disabled={completeMut.isPending}
+                          onClick={() => navigate(`/provider/upskilling/${mod.id}`)}
                         >
                           Start Module
                         </Button>
                       ) : (
-                        <div className="text-xs font-medium text-primary flex items-center">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Completed
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-medium text-primary flex items-center flex-1">
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> Completed
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 text-muted-foreground hover:text-foreground px-2"
+                            onClick={() => navigate(`/provider/upskilling/${mod.id}`)}
+                          >
+                            Re-read
+                          </Button>
                         </div>
                       )}
                     </div>

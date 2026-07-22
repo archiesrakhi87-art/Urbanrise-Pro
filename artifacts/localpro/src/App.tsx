@@ -17,6 +17,7 @@ import BookingDetail from '@/pages/resident/booking-detail';
 import ProviderDashboard from '@/pages/provider/dashboard';
 import ProviderBookings from '@/pages/provider/bookings';
 import ProviderUpskilling from '@/pages/provider/upskilling';
+import UpskillingDetail from '@/pages/provider/upskilling-detail';
 import ProviderProfileEditor from '@/pages/provider/profile';
 import ProviderOnboarding from '@/pages/provider/onboarding';
 
@@ -104,6 +105,13 @@ function Router() {
         <RequireAuth role="provider">
           <Shell title="Upskilling">
             <ProviderUpskilling />
+          </Shell>
+        </RequireAuth>
+      </Route>
+      <Route path="/provider/upskilling/:id">
+        <RequireAuth role="provider">
+          <Shell title="Module" showBottomNav={false}>
+            <UpskillingDetail />
           </Shell>
         </RequireAuth>
       </Route>
