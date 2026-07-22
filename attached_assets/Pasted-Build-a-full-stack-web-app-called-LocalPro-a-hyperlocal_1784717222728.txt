@@ -1,0 +1,64 @@
+Build a full-stack web app called "LocalPro" — a hyperlocal services marketplace connecting verified individual service providers (electricians, plumbers, home cleaners, repair technicians, etc.) with residents in Tier 2/3 Indian towns (initial launch cities: Kalpakkam, Anupuram, Chengalpattu, Tamil Nadu). This is an MVP for a two-sided marketplace inspired by Urban Company, but purpose-built for markets with no existing platform, low digital literacy among providers, and a need for trust-building from zero.
+
+Tech Stack
+Frontend: React + Tailwind CSS (mobile-first, responsive, works well on low-end Android devices)
+Backend: Node.js + Express (or Replit's recommended full-stack framework)
+Database: PostgreSQL (via Replit DB or Neon)
+Auth: Phone number + OTP-based login (no email requirement) for both residents and providers
+Language: Support English + Tamil (toggle in UI, store user's language preference)
+File/image upload: for provider ID docs, profile photos, and KYC video/selfie
+User Roles
+Resident (Customer) — browses and books services
+Provider (Service Individual) — onboards, lists services, accepts bookings
+Admin — verifies providers, manages disputes, views platform metrics
+Core Data Models
+User (id, phone, role, name, language_pref, city, created_at)
+Provider (user_id, service_categories[], id_doc_url, kyc_status [pending/verified/rejected], badge_tags [new_to_app, locally_endorsed], bio, rating_avg, total_jobs, onboarding_step)
+ServiceCategory (id, name, description, base_price_range)
+Booking (id, resident_id, provider_id, service_category_id, scheduled_time, status [requested/confirmed/completed/cancelled/disputed], price, address)
+Review (id, booking_id, rating, comment, flagged_boolean)
+UpskillingModule (id, title, content_url, category, completion_criteria)
+ProviderProgress (provider_id, module_id, completed_boolean, badge_unlocked)
+Dispute (id, booking_id, raised_by, status, sla_deadline, resolution_notes)
+LocalPartner (id, name, type [shop/NGO/municipal], region, contact_info)
+Features to Build (in priority order)
+1. Provider Onboarding & Verification (High priority — build first)
+Multi-step signup wizard: phone/OTP → language selection → basic profile → service category selection → ID upload → optional KYC selfie/video for high-trust categories (home cleaning, repair) → policy acceptance with digital signature (checkbox + typed name is fine for MVP)
+Onboarding progress tracker (visual step bar)
+Admin-side verification queue: view submitted docs, approve/reject, add notes
+Auto-assign "New to App" badge on approval; "Locally Endorsed" badge manually assignable by admin when a local partner vouches for the provider
+2. Booking, Discovery & Local Partnerships (High priority)
+Resident home screen: browse/filter providers by service type, location, language spoken, price range, and badge (New / Locally Endorsed)
+Provider profile page: photo, bio, rating, completed jobs count, badges, upfront price list
+Instant booking flow: select service → pick time slot → confirm address → see upfront price → confirm booking (no payment gateway needed for MVP — mark as "pay on completion")
+Booking status tracker for both resident and provider (requested → confirmed → completed)
+Simple local partner directory page (admin-managed list of shops/NGOs/municipal bodies tied to a region)
+3. Trust, Feedback & Dispute Handling (High priority)
+Post-booking rating (1–5 stars) + comment, shown on provider profile
+"Report an issue" flow from booking detail page → creates a Dispute with visible SLA timer
+Admin dispute dashboard: list open disputes, assign status, log resolution
+Basic automated flagging: if a provider gets 2+ low ratings (≤2 stars) in a short window, flag account for admin review
+4. Engagement, Gamification & Upskilling (Medium priority — build after core flows work)
+Simple upskilling module list per provider (short text/video lessons, e.g. "How to price your first job," "Customer communication basics")
+Mark-as-complete tracking with a progress bar and badge unlock on milestones (e.g., "5 modules complete")
+Referral point system: generate a referral code per user, track signups from it, show reward points on profile
+"Hall of Fame" page listing top-rated providers and most-active residents for the month
+Screens to Generate
+Landing/login (phone + OTP, language toggle)
+Resident: Home/Discovery, Provider Profile, Booking Flow, My Bookings, Rate & Review, Report Issue
+Provider: Onboarding Wizard, Dashboard (bookings, earnings, badges), Upskilling Modules, Profile Editor
+Admin: Verification Queue, Dispute Dashboard, Local Partner Manager, Basic Metrics (bookings volume, active providers/residents, repeat rate)
+MVP Scope Notes
+Skip payment gateway integration for now — mark bookings as "cash on completion"
+Skip real background-check API integration — build the UI/flow with a manual admin-approval stub instead
+Keep gamification simple (badges + points, no complex leaderboointerest algorithms)
+Design for slow connections/low-end phones: minimal heavy assets, lazy-load images
+Seed the database with sample data: 3 service categories, 6 sample providers, 10 sample residents, so the app is demoable immediately
+Success Metrics to Instrument (add basic event logging)
+Provider onboarding step completions and drop-off points
+Booking created / confirmed / completed / cancelled events
+Review submissions and dispute triggers
+Upskilling module starts/completions
+Repeat booking rate (same resident books same provider or platform again)
+
+Start by scaffolding the database schema and auth flow, then build the Provider Onboarding wizard end-to-end, then the Resident discovery/booking flow, then the review/dispute system, and finally the gamification/upskilling layer.
