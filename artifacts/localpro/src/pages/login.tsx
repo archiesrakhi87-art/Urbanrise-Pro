@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSendOtp, useVerifyOtp, getGetMeQueryKey, useGetMe } from "@workspace/api-client-react";
@@ -37,13 +37,15 @@ export default function Login() {
   const sendOtpMut = useSendOtp();
   const verifyOtpMut = useVerifyOtp();
 
-  // If already logged in, redirect
-  if (user && !isUserLoading) {
-    if (user.role === "resident") setLocation("/");
-    else if (user.role === "provider") setLocation("/provider/dashboard");
-    else if (user.role === "admin") setLocation("/admin/metrics");
-    return null;
-  }
+  // If already logged in, redirect (must be in useEffect — calling setLocation
+  // during render causes an infinite re-render loop)
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      if (user.role === "resident") setLocation("/");
+      else if (user.role === "provider") setLocation("/provider/dashboard");
+      else if (user.role === "admin") setLocation("/admin/metrics");
+    }
+  }, [user, isUserLoading]);
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
