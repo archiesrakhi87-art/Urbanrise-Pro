@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "LocalPro"
+title = "UrbanrisePro"
 version = "1.0.0"
 id = "artifacts/localpro"
 router = "path"

@@ -77,7 +77,7 @@ export default function Login() {
       {
         onSuccess: (session) => {
           queryClient.setQueryData(getGetMeQueryKey(), session);
-          toast({ title: "Welcome to LocalPro!" });
+          toast({ title: "Welcome to UrbanrisePro!" });
           if (session.role === "resident") setLocation("/");
           else if (session.role === "provider") setLocation("/provider/dashboard");
           else if (session.role === "admin") setLocation("/admin/metrics");

@@ -14,7 +14,7 @@ export function Shell({ children, showBottomNav = true, title, hideHeader = fals
     <div className="min-h-[100dvh] flex flex-col bg-background relative max-w-md mx-auto shadow-2xl overflow-hidden sm:border-x sm:border-border">
       {!hideHeader && (
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
-          <h1 className="font-serif font-bold text-xl text-primary">{title || "LocalPro"}</h1>
+          <h1 className="font-serif font-bold text-xl text-primary">{title || "UrbanrisePro"}</h1>
           <LanguageToggle />
         </header>
       )}
@@ -33,7 +33,7 @@ export function AdminShell({ children, title }: { children: React.ReactNode, tit
   return (
     <div className="min-h-[100dvh] flex bg-background">
       <aside className="w-64 bg-card border-r border-border p-4 flex flex-col gap-4">
-        <h1 className="font-serif font-bold text-2xl text-primary mb-6">LocalPro Admin</h1>
+        <h1 className="font-serif font-bold text-2xl text-primary mb-6">UrbanrisePro Admin</h1>
         <nav className="flex flex-col gap-2 flex-1">
           <a href="/admin/metrics" className="text-sm font-medium px-3 py-2 rounded-md hover:bg-muted">Metrics</a>
           <a href="/admin/verify" className="text-sm font-medium px-3 py-2 rounded-md hover:bg-muted">Verification</a>

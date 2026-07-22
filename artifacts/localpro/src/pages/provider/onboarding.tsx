@@ -332,13 +332,13 @@ export default function ProviderOnboarding() {
               <p className="text-sm text-muted-foreground mt-1">Read and accept our terms before submitting.</p>
             </div>
             <div className="bg-card border border-border rounded-lg p-4 h-44 overflow-y-auto text-sm text-muted-foreground space-y-2">
-              <p className="font-semibold text-foreground">LocalPro Provider Agreement</p>
+              <p className="font-semibold text-foreground">UrbanrisePro Provider Agreement</p>
               <p>1. I will provide high-quality services to all residents and treat them with respect.</p>
               <p>2. I will not overcharge or change agreed prices without prior consent.</p>
               <p>3. I will behave professionally and maintain hygiene standards at every job site.</p>
               <p>4. I understand that repeated complaints may result in removal from the platform.</p>
               <p>5. I will not solicit bookings outside the platform to avoid platform fees.</p>
-              <p>6. I consent to LocalPro sharing my details with residents for the purpose of service delivery.</p>
+              <p>6. I consent to UrbanrisePro sharing my details with residents for the purpose of service delivery.</p>
             </div>
 
             <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg border border-border">
@@ -350,7 +350,7 @@ export default function ProviderOnboarding() {
                 className="mt-0.5 h-4 w-4 accent-primary cursor-pointer"
               />
               <label htmlFor="policy-accept" className="text-sm leading-snug cursor-pointer">
-                I have read and agree to the LocalPro Provider Agreement.
+                I have read and agree to the UrbanrisePro Provider Agreement.
               </label>
             </div>
 

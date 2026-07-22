@@ -3,7 +3,7 @@ export type Language = 'en' | 'ta';
 export const translations = {
   en: {
     // General
-    "app.name": "LocalPro",
+    "app.name": "UrbanrisePro",
     "common.loading": "Loading...",
     "common.error": "Something went wrong.",
     "common.save": "Save",
@@ -19,7 +19,7 @@ export const translations = {
     "common.no": "No",
 
     // Auth
-    "auth.login.title": "Welcome to LocalPro",
+    "auth.login.title": "Welcome to UrbanrisePro",
     "auth.login.subtitle": "Your trusted neighborhood service board.",
     "auth.login.phoneLabel": "Phone Number",
     "auth.login.phonePlaceholder": "Enter 10-digit number",
@@ -79,7 +79,7 @@ export const translations = {
     "provider.dashboard.jobs": "Total Jobs",
     "provider.dashboard.pending": "Pending Requests",
     "provider.dashboard.recent": "Recent Activity",
-    "provider.onboarding.title": "Join LocalPro",
+    "provider.onboarding.title": "Join UrbanrisePro",
     "provider.kyc.pending": "Your profile is under review by our team.",
     "provider.kyc.rejected": "Your profile needs updates. Please check notes.",
     

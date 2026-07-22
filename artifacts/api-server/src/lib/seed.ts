@@ -94,7 +94,7 @@ export async function seed() {
       { title: "How to Price Your First Job", category: "Electrician", completionCriteria: "Read and confirm understanding" },
       { title: "Customer Communication Basics", category: "General", completionCriteria: "Complete quiz" },
       { title: "Safety Standards for Home Visits", category: "General", completionCriteria: "Read safety guide" },
-      { title: "Using the LocalPro App", category: "General", completionCriteria: "Complete walkthrough" },
+      { title: "Using the UrbanrisePro App", category: "General", completionCriteria: "Complete walkthrough" },
       { title: "Building Trust with Reviews", category: "General", completionCriteria: "Read guide" },
       { title: "Plumbing Basics: Common Repairs", category: "Plumber", completionCriteria: "Watch video" },
       { title: "Cleaning Best Practices", category: "Home Cleaning", completionCriteria: "Read and confirm" },

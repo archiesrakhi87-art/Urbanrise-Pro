@@ -44,7 +44,7 @@ function Router() {
       {/* Resident Routes */}
       <Route path="/">
         <RequireAuth role="resident">
-          <Shell title="LocalPro">
+          <Shell title="UrbanrisePro">
             <ResidentHome />
           </Shell>
         </RequireAuth>
