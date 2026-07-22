@@ -12,7 +12,11 @@ export type EventName =
   | "booking.completed"
   | "booking.cancelled"
   | "booking.disputed"
-  | "booking.status_changed";
+  | "booking.status_changed"
+  | "review.submitted"
+  | "trust.provider_flagged"
+  | "dispute.opened"
+  | "dispute.status_changed";
 
 export interface EventPayload {
   userId?: number;
@@ -28,6 +32,11 @@ export interface EventPayload {
   docType?: string;
   badge?: string;
   notes?: string;
+  rating?: number;
+  reviewId?: number;
+  disputeId?: number;
+  issueType?: string;
+  lowRatingCount?: number;
 }
 
 export function logEvent(event: EventName, payload: EventPayload = {}): void {

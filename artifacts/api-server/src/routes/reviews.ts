@@ -5,6 +5,7 @@ import {
   CreateReviewBody,
   ListReviewsForProviderParams,
 } from "@workspace/api-zod";
+import { logEvent } from "../lib/events";
 
 const router: IRouter = Router();
 
@@ -49,6 +50,14 @@ router.post("/reviews", async (req, res): Promise<void> => {
     }
   }
 
+  logEvent("review.submitted", {
+    reviewId: review.id,
+    bookingId,
+    residentId: userId,
+    providerId: booking.providerId,
+    rating,
+  });
+
   // Check for low-rating flagging: 2+ reviews ≤2 stars in last 7 days
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const allReviews = await db.select().from(reviewsTable).where(
@@ -57,6 +66,10 @@ router.post("/reviews", async (req, res): Promise<void> => {
   const relevantLow = allReviews.filter((r) => bookingIds.includes(r.bookingId));
   if (relevantLow.length >= 2) {
     await db.update(providersTable).set({ flagged: true }).where(eq(providersTable.id, booking.providerId));
+    logEvent("trust.provider_flagged", {
+      providerId: booking.providerId,
+      lowRatingCount: relevantLow.length,
+    });
   }
 
   const [resident] = await db.select().from(usersTable).where(eq(usersTable.id, userId));

@@ -8,6 +8,7 @@ import {
   UpdateDisputeParams,
   UpdateDisputeBody,
 } from "@workspace/api-zod";
+import { logEvent } from "../lib/events";
 
 const router: IRouter = Router();
 
@@ -74,6 +75,13 @@ router.post("/disputes", async (req, res): Promise<void> => {
       slaDeadline,
     })
     .returning();
+
+  logEvent("dispute.opened", {
+    disputeId: dispute.id,
+    bookingId: dispute.bookingId,
+    residentId: userId,
+    issueType: parsed.data.issueType,
+  });
 
   res.status(201).json(await formatDispute(dispute));
 });
@@ -171,10 +179,26 @@ router.patch("/admin/disputes/:id", async (req, res): Promise<void> => {
   if (body.data.status) update.status = body.data.status;
   if (body.data.resolutionNotes) update.resolutionNotes = body.data.resolutionNotes;
 
+  const [existing] = await db.select().from(disputesTable).where(eq(disputesTable.id, params.data.id));
+  if (!existing) {
+    res.status(404).json({ error: "Dispute not found" });
+    return;
+  }
+
   const [dispute] = await db.update(disputesTable).set(update).where(eq(disputesTable.id, params.data.id)).returning();
   if (!dispute) {
     res.status(404).json({ error: "Dispute not found" });
     return;
+  }
+
+  if (body.data.status && body.data.status !== existing.status) {
+    logEvent("dispute.status_changed", {
+      disputeId: dispute.id,
+      bookingId: dispute.bookingId,
+      fromStatus: existing.status,
+      toStatus: body.data.status,
+      adminId: req.session.userId,
+    });
   }
 
   res.json(await formatDispute(dispute));
