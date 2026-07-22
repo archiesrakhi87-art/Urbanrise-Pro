@@ -1,5 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { db, providersTable, usersTable, serviceCategoriesTable } from "@workspace/db";
 import {
   ListProvidersQueryParams,
@@ -11,6 +14,28 @@ import {
   AssignBadgeParams,
   AssignBadgeBody,
 } from "@workspace/api-zod";
+import { logEvent } from "../lib/events";
+
+// Configure multer disk storage
+const uploadsDir = process.env["UPLOADS_DIR"] ?? path.join(process.cwd(), "uploads");
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".bin";
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf", "video/mp4"];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 const router: IRouter = Router();
 
@@ -23,6 +48,16 @@ function requireAuth(req: Request, res: Response): number | null {
   return userId;
 }
 
+// Express middleware version of requireAuth — runs BEFORE body parsers (e.g. multer)
+// so unauthenticated requests are rejected before any disk I/O happens.
+function requireAuthMiddleware(req: Request, res: Response, next: () => void): void {
+  if (!req.session.userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  next();
+}
+
 function requireRole(req: Request, res: Response, role: string): boolean {
   if (req.session.role !== role) {
     res.status(403).json({ error: "Forbidden" });
@@ -31,7 +66,12 @@ function requireRole(req: Request, res: Response, role: string): boolean {
   return true;
 }
 
-async function buildProviderDetail(provider: typeof providersTable.$inferSelect, user: typeof usersTable.$inferSelect) {
+// Base detail shared by owner + admin routes — includes sensitive doc URLs.
+async function buildProviderDetail(
+  provider: typeof providersTable.$inferSelect,
+  user: typeof usersTable.$inferSelect,
+  opts: { includeDocUrls?: boolean } = {},
+) {
   return {
     id: provider.id,
     userId: provider.userId,
@@ -39,8 +79,10 @@ async function buildProviderDetail(provider: typeof providersTable.$inferSelect,
     phone: user.phone,
     city: user.city,
     bio: provider.bio,
+    // photoUrl is a selfie — shown on public profile cards; idDocUrl is KYC-sensitive
     photoUrl: provider.photoUrl,
-    idDocUrl: provider.idDocUrl,
+    // idDocUrl only included for the owning provider or admin (default: excluded)
+    ...(opts.includeDocUrls ? { idDocUrl: provider.idDocUrl } : {}),
     kycStatus: provider.kycStatus,
     kycNotes: provider.kycNotes,
     badgeTags: provider.badgeTags,
@@ -119,7 +161,7 @@ router.get("/providers/me", async (req, res): Promise<void> => {
     return;
   }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  res.json(await buildProviderDetail(provider, user));
+  res.json(await buildProviderDetail(provider, user, { includeDocUrls: true }));
 });
 
 // POST /providers/me/onboarding
@@ -158,21 +200,49 @@ router.post("/providers/me/onboarding", async (req, res): Promise<void> => {
     [provider] = await db.insert(providersTable).values({ userId, ...providerUpdate }).returning();
   }
 
+  // Structured event logging per step
+  if (step >= 6 && policyAccepted) {
+    logEvent("onboarding.submitted", { userId, providerId: provider.id, step });
+  } else {
+    logEvent("onboarding.step_completed", { userId, providerId: provider.id, step });
+  }
+
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  res.json(await buildProviderDetail(provider, user));
+  res.json(await buildProviderDetail(provider, user, { includeDocUrls: true }));
 });
 
-// POST /providers/me/upload (stub)
-router.post("/providers/me/upload", async (req, res): Promise<void> => {
+// POST /providers/me/upload — multipart file upload (multer)
+// requireAuthMiddleware runs BEFORE multer so unauthenticated callers are rejected
+// before any disk I/O happens, preventing storage-abuse / DoS.
+router.post("/providers/me/upload", requireAuthMiddleware, upload.single("file"), async (req, res): Promise<void> => {
   const userId = requireAuth(req, res);
   if (!userId) return;
+
+  if (!req.file) {
+    res.status(400).json({ error: "No file received" });
+    return;
+  }
+
   const docType = (req.body as Record<string, string>)["docType"] ?? "id_doc";
-  const stubUrl = `/uploads/${userId}/${docType}-${Date.now()}.jpg`;
+  // Serve files through the authenticated /api/documents/ endpoint — not publicly
+  const fileUrl = `/api/documents/${req.file.filename}`;
 
-  const urlField = docType === "photo" ? "photoUrl" : "idDocUrl";
-  await db.update(providersTable).set({ [urlField]: stubUrl }).where(eq(providersTable.userId, userId));
+  // Map docType to the correct column
+  const urlField =
+    docType === "photo" || docType === "kyc_selfie"
+      ? "photoUrl"
+      : "idDocUrl";
 
-  res.json({ url: stubUrl, docType });
+  await db
+    .update(providersTable)
+    .set({ [urlField]: fileUrl })
+    .where(eq(providersTable.userId, userId));
+
+  const [provider] = await db.select().from(providersTable).where(eq(providersTable.userId, userId));
+
+  logEvent("provider.document_uploaded", { userId, providerId: provider?.id, docType });
+
+  res.json({ url: fileUrl, docType });
 });
 
 // PATCH /providers/me/profile
@@ -195,7 +265,7 @@ router.patch("/providers/me/profile", async (req, res): Promise<void> => {
     .where(eq(providersTable.userId, userId))
     .returning();
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  res.json(await buildProviderDetail(provider, user));
+  res.json(await buildProviderDetail(provider, user, { includeDocUrls: true }));
 });
 
 // GET /providers/:id
@@ -227,7 +297,7 @@ router.get("/admin/providers/pending", async (req, res): Promise<void> => {
     .innerJoin(usersTable, eq(providersTable.userId, usersTable.id))
     .where(eq(providersTable.kycStatus, "submitted"));
 
-  res.json(await Promise.all(results.map(({ provider, user }) => buildProviderDetail(provider, user))));
+  res.json(await Promise.all(results.map(({ provider, user }) => buildProviderDetail(provider, user, { includeDocUrls: true }))));
 });
 
 router.get("/admin/providers/flagged", async (req, res): Promise<void> => {
@@ -241,7 +311,7 @@ router.get("/admin/providers/flagged", async (req, res): Promise<void> => {
     .innerJoin(usersTable, eq(providersTable.userId, usersTable.id))
     .where(eq(providersTable.flagged, true));
 
-  res.json(await Promise.all(results.map(({ provider, user }) => buildProviderDetail(provider, user))));
+  res.json(await Promise.all(results.map(({ provider, user }) => buildProviderDetail(provider, user, { includeDocUrls: true }))));
 });
 
 router.post("/admin/providers/:id/verify", async (req, res): Promise<void> => {
@@ -274,8 +344,15 @@ router.post("/admin/providers/:id/verify", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Provider not found" });
     return;
   }
+
+  logEvent(action === "approve" ? "provider.approved" : "provider.rejected", {
+    adminId: authId,
+    providerId: provider.id,
+    notes: notes ?? undefined,
+  });
+
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, provider.userId));
-  res.json(await buildProviderDetail(provider, user));
+  res.json(await buildProviderDetail(provider, user, { includeDocUrls: true }));
 });
 
 router.post("/admin/providers/:id/badge", async (req, res): Promise<void> => {
@@ -307,8 +384,50 @@ router.post("/admin/providers/:id/badge", async (req, res): Promise<void> => {
     .where(eq(providersTable.id, params.data.id))
     .returning();
 
+  logEvent("provider.badge_assigned", {
+    adminId: authId,
+    providerId: provider.id,
+    badge: body.data.badge,
+  });
+
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, provider.userId));
-  res.json(await buildProviderDetail(provider, user));
+  res.json(await buildProviderDetail(provider, user, { includeDocUrls: true }));
+});
+
+// GET /api/documents/:filename — authenticated document serving
+// Admin: access any file. Provider: only their own photoUrl / idDocUrl. Resident: 403.
+router.get("/documents/:filename", async (req, res): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
+  const { filename } = req.params as { filename: string };
+  if (!filename || filename.includes("..") || filename.includes("/")) {
+    res.status(400).json({ error: "Invalid filename" });
+    return;
+  }
+
+  const role = req.session.role;
+
+  if (role !== "admin") {
+    const [provider] = await db.select().from(providersTable).where(eq(providersTable.userId, userId));
+    if (!provider) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    const requestedUrl = `/api/documents/${filename}`;
+    const ownedUrls = [provider.idDocUrl, provider.photoUrl].filter(Boolean);
+    if (!ownedUrls.includes(requestedUrl)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+  }
+
+  const filePath = path.join(uploadsDir, filename);
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      res.status(404).json({ error: "File not found" });
+    }
+  });
 });
 
 export default router;

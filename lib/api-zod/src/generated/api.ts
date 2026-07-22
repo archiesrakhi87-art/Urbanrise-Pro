@@ -201,7 +201,8 @@ export const SaveOnboardingStepResponse = zod.object({
  * @summary Upload ID doc or KYC file
  */
 export const UploadProviderDocumentBody = zod.object({
-  "docType": zod.string().optional().describe('id_doc | kyc_selfie | kyc_video | photo')
+  "docType": zod.string().describe('id_doc | kyc_selfie | kyc_video | photo'),
+  "file": zod.instanceof(File).describe('The file to upload')
 })
 
 export const UploadProviderDocumentResponse = zod.object({

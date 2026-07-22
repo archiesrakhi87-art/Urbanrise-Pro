@@ -112,7 +112,9 @@ export interface OnboardingStepInput {
 
 export interface DocumentUploadInput {
   /** id_doc | kyc_selfie | kyc_video | photo */
-  docType?: string;
+  docType: string;
+  /** The file to upload */
+  file: Blob;
 }
 
 export interface UploadResult {

@@ -777,9 +777,8 @@ export const getUploadProviderDocumentUrl = () => {
  */
 export const uploadProviderDocument = async (documentUploadInput: DocumentUploadInput, options?: RequestInit): Promise<UploadResult> => {
     const formData = new FormData();
-if(documentUploadInput.docType !== undefined) {
- formData.append(`docType`, documentUploadInput.docType);
- }
+formData.append(`docType`, documentUploadInput.docType);
+formData.append(`file`, documentUploadInput.file);
 
   return customFetch<UploadResult>(getUploadProviderDocumentUrl(),
   {

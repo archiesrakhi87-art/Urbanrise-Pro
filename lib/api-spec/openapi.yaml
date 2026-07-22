@@ -960,10 +960,15 @@ components:
 
     DocumentUploadInput:
       type: object
+      required: [docType, file]
       properties:
         docType:
           type: string
           description: "id_doc | kyc_selfie | kyc_video | photo"
+        file:
+          type: string
+          format: binary
+          description: The file to upload
 
     UploadResult:
       type: object
