@@ -54,11 +54,22 @@ const allowedOrigins = new Set([
   ...replitDomains,
 ]);
 
+// Helper: is the origin a Replit-managed domain (*.replit.dev or *.replit.app)?
+// These are controlled by Replit, so it's safe to allow them for this app.
+function isReplitOrigin(origin: string): boolean {
+  try {
+    const { hostname } = new URL(origin);
+    return hostname.endsWith(".replit.dev") || hostname.endsWith(".replit.app");
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow server-to-server (no origin) and listed origins only.
-      if (!origin || allowedOrigins.has(origin)) {
+      // Allow server-to-server (no origin), listed origins, and any Replit domain.
+      if (!origin || allowedOrigins.has(origin) || isReplitOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin '${origin}' not allowed`));
