@@ -3,20 +3,40 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: LocalPro API — hyperlocal services marketplace
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: providers
+    description: Provider operations
+  - name: bookings
+    description: Booking operations
+  - name: reviews
+    description: Review operations
+  - name: disputes
+    description: Dispute operations
+  - name: upskilling
+    description: Upskilling module operations
+  - name: local-partners
+    description: Local partner directory
+  - name: admin
+    description: Admin operations
+  - name: referrals
+    description: Referral system
+  - name: engagement
+    description: Engagement and gamification
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +44,745 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ──────────────────────────────────────────────────────────────────
+  /auth/send-otp:
+    post:
+      operationId: sendOtp
+      tags: [auth]
+      summary: Send OTP to phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOtpInput"
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendOtpResult"
+
+  /auth/verify-otp:
+    post:
+      operationId: verifyOtp
+      tags: [auth]
+      summary: Verify OTP and log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid OTP
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current session user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Not authenticated
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResult"
+
+  # ── PROVIDERS ─────────────────────────────────────────────────────────────
+  /providers:
+    get:
+      operationId: listProviders
+      tags: [providers]
+      summary: List verified providers with filters
+      parameters:
+        - name: serviceCategory
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: city
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: language
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: minPrice
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: maxPrice
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: badge
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderSummary"
+
+  /providers/{id}:
+    get:
+      operationId: getProvider
+      tags: [providers]
+      summary: Get provider profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Provider profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDetail"
+        "404":
+          description: Not found
+
+  /providers/me:
+    get:
+      operationId: getMyProvider
+      tags: [providers]
+      summary: Get current provider's own profile
+      responses:
+        "200":
+          description: My provider profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDetail"
+        "404":
+          description: Not a provider
+
+  /providers/me/onboarding:
+    post:
+      operationId: saveOnboardingStep
+      tags: [providers]
+      summary: Save a provider onboarding step
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingStepInput"
+      responses:
+        "200":
+          description: Step saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDetail"
+
+  /providers/me/upload:
+    post:
+      operationId: uploadProviderDocument
+      tags: [providers]
+      summary: Upload ID doc or KYC file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/DocumentUploadInput"
+      responses:
+        "200":
+          description: Upload complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+
+  /providers/me/profile:
+    patch:
+      operationId: updateProviderProfile
+      tags: [providers]
+      summary: Update provider profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDetail"
+
+  # ── SERVICE CATEGORIES ────────────────────────────────────────────────────
+  /service-categories:
+    get:
+      operationId: listServiceCategories
+      tags: [providers]
+      summary: List all service categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceCategory"
+
+  # ── BOOKINGS ──────────────────────────────────────────────────────────────
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List bookings for current user
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: role
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a new booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get booking detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          description: Not found
+
+  /bookings/{id}/status:
+    patch:
+      operationId: updateBookingStatus
+      tags: [bookings]
+      summary: Update booking status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingStatusUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  # ── REVIEWS ───────────────────────────────────────────────────────────────
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Submit a review for a completed booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  /providers/{id}/reviews:
+    get:
+      operationId: listReviewsForProvider
+      tags: [reviews]
+      summary: List reviews for a provider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  # ── DISPUTES ──────────────────────────────────────────────────────────────
+  /disputes:
+    post:
+      operationId: createDispute
+      tags: [disputes]
+      summary: Report an issue / create a dispute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /disputes/{id}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get dispute detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  # ── UPSKILLING ────────────────────────────────────────────────────────────
+  /upskilling/modules:
+    get:
+      operationId: listUpskillingModules
+      tags: [upskilling]
+      summary: List upskilling modules
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Modules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UpskillingModule"
+
+  /upskilling/modules/{id}:
+    get:
+      operationId: getUpskillingModule
+      tags: [upskilling]
+      summary: Get upskilling module
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Module
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpskillingModule"
+
+  /upskilling/modules/{id}/complete:
+    post:
+      operationId: completeUpskillingModule
+      tags: [upskilling]
+      summary: Mark a module as complete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderProgress"
+
+  /upskilling/progress:
+    get:
+      operationId: getMyUpskillingProgress
+      tags: [upskilling]
+      summary: Get my upskilling progress summary
+      responses:
+        "200":
+          description: Progress summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressSummary"
+
+  # ── LOCAL PARTNERS ────────────────────────────────────────────────────────
+  /local-partners:
+    get:
+      operationId: listLocalPartners
+      tags: [local-partners]
+      summary: List local partners by region
+      parameters:
+        - name: region
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Local partners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LocalPartner"
+    post:
+      operationId: createLocalPartner
+      tags: [local-partners]
+      summary: Create a local partner (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalPartnerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalPartner"
+
+  /local-partners/{id}:
+    patch:
+      operationId: updateLocalPartner
+      tags: [local-partners]
+      summary: Update a local partner (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalPartnerUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalPartner"
+    delete:
+      operationId: deleteLocalPartner
+      tags: [local-partners]
+      summary: Delete a local partner (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── ADMIN ─────────────────────────────────────────────────────────────────
+  /admin/providers/pending:
+    get:
+      operationId: listPendingProviders
+      tags: [admin]
+      summary: List providers pending verification
+      responses:
+        "200":
+          description: Pending providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderDetail"
+
+  /admin/providers/flagged:
+    get:
+      operationId: listFlaggedProviders
+      tags: [admin]
+      summary: List flagged providers
+      responses:
+        "200":
+          description: Flagged providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderDetail"
+
+  /admin/providers/{id}/verify:
+    post:
+      operationId: verifyProvider
+      tags: [admin]
+      summary: Approve or reject a provider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderVerifyAction"
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDetail"
+
+  /admin/providers/{id}/badge:
+    post:
+      operationId: assignBadge
+      tags: [admin]
+      summary: Assign a badge to a provider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BadgeAssignInput"
+      responses:
+        "200":
+          description: Badge assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDetail"
+
+  /admin/disputes:
+    get:
+      operationId: listAdminDisputes
+      tags: [admin]
+      summary: List all disputes (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Disputes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dispute"
+
+  /admin/disputes/{id}:
+    patch:
+      operationId: updateDispute
+      tags: [admin]
+      summary: Update dispute status and notes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /admin/metrics:
+    get:
+      operationId: getAdminMetrics
+      tags: [admin]
+      summary: Get platform metrics
+      responses:
+        "200":
+          description: Metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMetrics"
+
+  /admin/metrics/onboarding-funnel:
+    get:
+      operationId: getOnboardingFunnel
+      tags: [admin]
+      summary: Get provider onboarding funnel stats
+      responses:
+        "200":
+          description: Funnel data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FunnelStep"
+
+  # ── REFERRALS ─────────────────────────────────────────────────────────────
+  /referrals/me:
+    get:
+      operationId: getMyReferralStats
+      tags: [referrals]
+      summary: Get my referral code and stats
+      responses:
+        "200":
+          description: Referral stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralStats"
+
+  # ── ENGAGEMENT ────────────────────────────────────────────────────────────
+  /engagement/hall-of-fame:
+    get:
+      operationId: getHallOfFame
+      tags: [engagement]
+      summary: Get Hall of Fame (top providers and residents this month)
+      responses:
+        "200":
+          description: Hall of Fame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HallOfFame"
+
+  /engagement/dashboard:
+    get:
+      operationId: getProviderDashboard
+      tags: [engagement]
+      summary: Get provider dashboard summary
+      responses:
+        "200":
+          description: Provider dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDashboard"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +793,549 @@ components:
       required:
         - status
 
+    # ── Auth schemas ───────────────────────────────────────────────────────
+    SendOtpInput:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+
+    SendOtpResult:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    VerifyOtpInput:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone:
+          type: string
+        otp:
+          type: string
+        role:
+          type: ["string", "null"]
+          description: "resident | provider (for new users)"
+        referralCode:
+          type: ["string", "null"]
+
+    AuthSession:
+      type: object
+      required: [id, phone, role, name, languagePref, city]
+      properties:
+        id:
+          type: integer
+        phone:
+          type: string
+        role:
+          type: string
+        name:
+          type: ["string", "null"]
+        languagePref:
+          type: string
+        city:
+          type: ["string", "null"]
+        referralCode:
+          type: ["string", "null"]
+        referralPoints:
+          type: integer
+
+    LogoutResult:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    # ── Provider schemas ───────────────────────────────────────────────────
+    ProviderSummary:
+      type: object
+      required: [id, userId, name, city, kycStatus, ratingAvg, totalJobs, badgeTags, serviceCategories]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        city:
+          type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        kycStatus:
+          type: string
+        ratingAvg:
+          type: number
+        totalJobs:
+          type: integer
+        badgeTags:
+          type: array
+          items:
+            type: string
+        serviceCategories:
+          type: array
+          items:
+            type: string
+        languagesSpoken:
+          type: array
+          items:
+            type: string
+
+    ProviderDetail:
+      type: object
+      required: [id, userId, name, city, kycStatus, ratingAvg, totalJobs, badgeTags, serviceCategories, onboardingStep]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        city:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        idDocUrl:
+          type: ["string", "null"]
+        kycStatus:
+          type: string
+        kycNotes:
+          type: ["string", "null"]
+        badgeTags:
+          type: array
+          items:
+            type: string
+        ratingAvg:
+          type: number
+        totalJobs:
+          type: integer
+        serviceCategories:
+          type: array
+          items:
+            type: string
+        priceList:
+          type: ["string", "null"]
+        languagesSpoken:
+          type: array
+          items:
+            type: string
+        onboardingStep:
+          type: integer
+        flagged:
+          type: boolean
+        createdAt:
+          type: string
+
+    OnboardingStepInput:
+      type: object
+      required: [step]
+      properties:
+        step:
+          type: integer
+        name:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        languagePref:
+          type: ["string", "null"]
+        serviceCategories:
+          type: array
+          items:
+            type: string
+        priceList:
+          type: ["string", "null"]
+        policyAccepted:
+          type: ["boolean", "null"]
+        digitalSignature:
+          type: ["string", "null"]
+
+    DocumentUploadInput:
+      type: object
+      properties:
+        docType:
+          type: string
+          description: "id_doc | kyc_selfie | kyc_video | photo"
+
+    UploadResult:
+      type: object
+      required: [url, docType]
+      properties:
+        url:
+          type: string
+        docType:
+          type: string
+
+    ProviderProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        priceList:
+          type: ["string", "null"]
+        languagesSpoken:
+          type: array
+          items:
+            type: string
+
+    ProviderVerifyAction:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          description: "approve | reject"
+        notes:
+          type: ["string", "null"]
+
+    BadgeAssignInput:
+      type: object
+      required: [badge]
+      properties:
+        badge:
+          type: string
+          description: "new_to_app | locally_endorsed"
+
+    ServiceCategory:
+      type: object
+      required: [id, name, description]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        basePriceMin:
+          type: ["integer", "null"]
+        basePriceMax:
+          type: ["integer", "null"]
+
+    # ── Booking schemas ────────────────────────────────────────────────────
+    Booking:
+      type: object
+      required: [id, residentId, providerId, serviceCategoryId, status, price, address, createdAt]
+      properties:
+        id:
+          type: integer
+        residentId:
+          type: integer
+        providerId:
+          type: integer
+        serviceCategoryId:
+          type: integer
+        scheduledTime:
+          type: ["string", "null"]
+        status:
+          type: string
+        price:
+          type: integer
+        address:
+          type: string
+        createdAt:
+          type: string
+        providerName:
+          type: ["string", "null"]
+        residentName:
+          type: ["string", "null"]
+        serviceName:
+          type: ["string", "null"]
+        hasReview:
+          type: boolean
+
+    BookingInput:
+      type: object
+      required: [providerId, serviceCategoryId, scheduledTime, address, price]
+      properties:
+        providerId:
+          type: integer
+        serviceCategoryId:
+          type: integer
+        scheduledTime:
+          type: string
+        address:
+          type: string
+        price:
+          type: integer
+
+    BookingStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: "confirmed | completed | cancelled | disputed"
+
+    # ── Review schemas ─────────────────────────────────────────────────────
+    Review:
+      type: object
+      required: [id, bookingId, rating, createdAt]
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: ["string", "null"]
+        flagged:
+          type: boolean
+        createdAt:
+          type: string
+        residentName:
+          type: ["string", "null"]
+
+    ReviewInput:
+      type: object
+      required: [bookingId, rating]
+      properties:
+        bookingId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: ["string", "null"]
+
+    # ── Dispute schemas ────────────────────────────────────────────────────
+    Dispute:
+      type: object
+      required: [id, bookingId, raisedBy, status, slaDeadline, createdAt]
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        raisedBy:
+          type: integer
+        status:
+          type: string
+        slaDeadline:
+          type: string
+        resolutionNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        issueType:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        raisedByName:
+          type: ["string", "null"]
+
+    DisputeInput:
+      type: object
+      required: [bookingId, issueType, description]
+      properties:
+        bookingId:
+          type: integer
+        issueType:
+          type: string
+        description:
+          type: string
+
+    DisputeUpdate:
+      type: object
+      properties:
+        status:
+          type: ["string", "null"]
+          description: "open | investigating | resolved"
+        resolutionNotes:
+          type: ["string", "null"]
+
+    # ── Upskilling schemas ─────────────────────────────────────────────────
+    UpskillingModule:
+      type: object
+      required: [id, title, category]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        contentUrl:
+          type: ["string", "null"]
+        category:
+          type: string
+        completionCriteria:
+          type: ["string", "null"]
+        completed:
+          type: boolean
+
+    ProviderProgress:
+      type: object
+      required: [moduleId, completed]
+      properties:
+        moduleId:
+          type: integer
+        completed:
+          type: boolean
+        badgeUnlocked:
+          type: boolean
+
+    ProgressSummary:
+      type: object
+      required: [totalModules, completedModules, badgesUnlocked]
+      properties:
+        totalModules:
+          type: integer
+        completedModules:
+          type: integer
+        badgesUnlocked:
+          type: integer
+        progressPercent:
+          type: number
+
+    # ── Local Partner schemas ──────────────────────────────────────────────
+    LocalPartner:
+      type: object
+      required: [id, name, type, region]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          description: "shop | NGO | municipal"
+        region:
+          type: string
+        contactInfo:
+          type: ["string", "null"]
+
+    LocalPartnerInput:
+      type: object
+      required: [name, type, region]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        region:
+          type: string
+        contactInfo:
+          type: ["string", "null"]
+
+    LocalPartnerUpdate:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        type:
+          type: ["string", "null"]
+        region:
+          type: ["string", "null"]
+        contactInfo:
+          type: ["string", "null"]
+
+    # ── Admin schemas ──────────────────────────────────────────────────────
+    AdminMetrics:
+      type: object
+      required: [totalBookings, activeProviders, activeResidents, repeatBookingRate]
+      properties:
+        totalBookings:
+          type: integer
+        bookingsByStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        activeProviders:
+          type: integer
+        activeResidents:
+          type: integer
+        repeatBookingRate:
+          type: number
+        bookingsThisMonth:
+          type: integer
+        reviewsThisMonth:
+          type: integer
+        openDisputes:
+          type: integer
+
+    FunnelStep:
+      type: object
+      required: [step, label, count]
+      properties:
+        step:
+          type: integer
+        label:
+          type: string
+        count:
+          type: integer
+
+    # ── Referral schemas ───────────────────────────────────────────────────
+    ReferralStats:
+      type: object
+      required: [referralCode, totalReferrals, points]
+      properties:
+        referralCode:
+          type: string
+        totalReferrals:
+          type: integer
+        points:
+          type: integer
+
+    # ── Engagement schemas ─────────────────────────────────────────────────
+    HallOfFame:
+      type: object
+      required: [topProviders, topResidents]
+      properties:
+        topProviders:
+          type: array
+          items:
+            $ref: "#/components/schemas/HallEntry"
+        topResidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/HallEntry"
+
+    HallEntry:
+      type: object
+      required: [id, name, score, metric]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        photoUrl:
+          type: ["string", "null"]
+        score:
+          type: number
+        metric:
+          type: string
+
+    ProviderDashboard:
+      type: object
+      required: [totalEarnings, totalJobs, pendingBookings, completedBookings, ratingAvg, badgeTags, upskillingProgress]
+      properties:
+        totalEarnings:
+          type: integer
+        totalJobs:
+          type: integer
+        pendingBookings:
+          type: integer
+        completedBookings:
+          type: integer
+        ratingAvg:
+          type: number
+        badgeTags:
+          type: array
+          items:
+            type: string
+        upskillingProgress:
+          type: integer
+        recentBookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Booking"

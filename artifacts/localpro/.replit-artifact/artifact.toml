@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "LocalPro"
+version = "1.0.0"
+id = "artifacts/localpro"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24209
+
+[services.development]
+run = "pnpm --filter @workspace/localpro run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/localpro", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/localpro/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24209"
+BASE_PATH = "/"

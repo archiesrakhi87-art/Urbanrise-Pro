@@ -1,10 +1,15 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "@workspace/db";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+
+const PgStore = connectPgSimple(session);
 
 app.use(
   pinoHttp({
@@ -25,9 +30,60 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+// Allow the Replit dev domain and any explicitly configured ALLOWED_ORIGINS.
+// Falls back to a safe empty list in production unless configured.
+const rawAllowedOrigins = process.env["ALLOWED_ORIGINS"] ?? "";
+const configuredOrigins = rawAllowedOrigins
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// In development, also accept the Replit dev domain automatically.
+const replitDevDomain = process.env["REPLIT_DEV_DOMAIN"];
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  ...(replitDevDomain ? [`https://${replitDevDomain}`] : []),
+]);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server (no origin) and listed origins only.
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
+      }
+    },
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const sessionSecret = process.env["SESSION_SECRET"];
+if (!sessionSecret) {
+  throw new Error("SESSION_SECRET environment variable is required");
+}
+
+app.use(
+  session({
+    store: new PgStore({
+      pool,
+      createTableIfMissing: true,
+    }),
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: "lax",
+    },
+  }),
+);
 
 app.use("/api", router);
 
