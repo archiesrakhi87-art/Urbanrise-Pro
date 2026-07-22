@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSendOtp, useVerifyOtp, getGetMeQueryKey, useGetMe } from "@workspace/api-client-react";
@@ -12,6 +12,13 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type LoginMode = "resident" | "admin";
+
+// Module-level flag: survives React Strict Mode unmount/remount cycles and
+// prevents the already-logged-in redirect from firing more than once even if
+// Wouter recreates the setLocation reference on every navigation event.
+// Reset to false whenever the server confirms the user is NOT authenticated so
+// a fresh login always triggers a redirect.
+let _loginRedirectFired = false;
 
 export default function Login() {
   const { t } = useLanguage();
@@ -30,27 +37,40 @@ export default function Login() {
   const [adminSecret, setAdminSecret] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
 
+  // staleTime: 0 forces a live server round-trip every time Login mounts.
+  // This prevents stale React Query cache from triggering a redirect when the
+  // session cookie is gone (e.g. server restart, new browser context), which
+  // would otherwise cause an infinite bounce loop with RequireAuth.
   const { data: user, isLoading: isUserLoading } = useGetMe({
-    query: { queryKey: getGetMeQueryKey(), retry: false },
+    query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0 },
   });
 
   const sendOtpMut = useSendOtp();
   const verifyOtpMut = useVerifyOtp();
 
-  // Guard: only redirect once per mount to avoid bounce loops if the session
-  // hasn't propagated yet (e.g. RequireAuth sends us back to /login while the
-  // cookie is still being written).
-  const redirectedRef = useRef(false);
-
+  // Reset the module-level guard whenever the server confirms no active session,
+  // so a fresh login always triggers the redirect after re-authentication.
   useEffect(() => {
-    if (redirectedRef.current) return;
+    if (!user && !isUserLoading) {
+      _loginRedirectFired = false;
+    }
+  }, [user, isUserLoading]);
+
+  // Redirect already-authenticated users away from /login.
+  // - Module-level flag prevents re-entry across Strict Mode remounts and across
+  //   the Wouter navigation events that recreate the setLocation reference.
+  // - setLocation intentionally excluded from deps: including it causes the
+  //   effect to re-fire on every Wouter navigation, creating an infinite loop.
+  useEffect(() => {
+    if (_loginRedirectFired) return;
     if (user && !isUserLoading) {
-      redirectedRef.current = true;
+      _loginRedirectFired = true;
       if (user.role === "resident") setLocation("/");
       else if (user.role === "provider") setLocation("/provider/dashboard");
       else if (user.role === "admin") setLocation("/admin/metrics");
     }
-  }, [user, isUserLoading, setLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isUserLoading]);
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +104,9 @@ export default function Login() {
       {
         onSuccess: (session) => {
           queryClient.setQueryData(getGetMeQueryKey(), session);
+          // Claim the module-level guard BEFORE navigating so the useEffect
+          // redirect (triggered by setQueryData) sees it already set and bails.
+          _loginRedirectFired = true;
           toast({ title: "Welcome to UrbanrisePro!" });
           if (session.role === "resident") setLocation("/");
           else if (session.role === "provider") setLocation("/provider/dashboard");
@@ -117,6 +140,8 @@ export default function Login() {
       }
       const session = await res.json() as { role: string };
       queryClient.setQueryData(getGetMeQueryKey(), session);
+      // Claim the guard before navigating so the useEffect doesn't fire a second redirect.
+      _loginRedirectFired = true;
       toast({ title: "Admin access granted" });
       setLocation("/admin/metrics");
     } catch (err: unknown) {

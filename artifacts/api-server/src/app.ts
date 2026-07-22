@@ -41,10 +41,17 @@ const configuredOrigins = rawAllowedOrigins
   .filter(Boolean);
 
 // In development, also accept the Replit dev domain automatically.
+// REPLIT_DOMAINS is a comma-separated list of all domains (dev + production).
 const replitDevDomain = process.env["REPLIT_DEV_DOMAIN"];
+const replitDomains = (process.env["REPLIT_DOMAINS"] ?? "")
+  .split(",")
+  .map((d) => d.trim())
+  .filter(Boolean)
+  .map((d) => `https://${d}`);
 const allowedOrigins = new Set([
   ...configuredOrigins,
   ...(replitDevDomain ? [`https://${replitDevDomain}`] : []),
+  ...replitDomains,
 ]);
 
 app.use(

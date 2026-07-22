@@ -29,7 +29,7 @@ function ShareButton({ provider }: { provider: { id: number; name: string } }) {
     if (sharing) return;
     setSharing(true);
     const url = buildUrl();
-    const text = `Check out ${provider.name} on the LocalPro Hall of Fame!`;
+    const text = `Check out ${provider.name} on the UrbanrisePro Hall of Fame!`;
 
     if (navigator.share) {
       try {
@@ -104,7 +104,7 @@ export default function HallOfFame() {
                 <Star className="w-5 h-5 text-primary" /> Top Providers
               </h2>
               <div className="space-y-3">
-                {data?.topProviders.map((provider, i) => {
+                {(data?.topProviders ?? []).map((provider, i) => {
                   const idStr = String(provider.id);
                   const isHighlighted = justHighlighted === idStr;
                   return (
@@ -152,7 +152,7 @@ export default function HallOfFame() {
                 <TrendingUp className="w-5 h-5 text-accent" /> Active Residents
               </h2>
               <div className="space-y-3">
-                {data?.topResidents.map((resident, i) => (
+                {(data?.topResidents ?? []).map((resident, i) => (
                   <Card key={resident.id} className="border-border shadow-sm overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
                     <CardContent className="p-4 pl-5 flex items-center gap-4">

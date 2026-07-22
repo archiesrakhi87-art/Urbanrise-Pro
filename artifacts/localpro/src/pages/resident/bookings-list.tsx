@@ -14,13 +14,15 @@ export default function BookingsList() {
   const { data: user } = useGetMe();
   const { data: bookings, isLoading } = useListBookings({ role: "resident" });
 
-  const activeBookings = bookings?.filter(b => ["pending", "confirmed", "disputed"].includes(b.status)) || [];
+  // "requested" is the initial status set by the API on booking creation.
+  const activeBookings = bookings?.filter(b => ["requested", "pending", "confirmed", "disputed"].includes(b.status)) || [];
   const pastBookings = bookings?.filter(b => ["completed", "cancelled"].includes(b.status)) || [];
 
   const displayBookings = tab === "active" ? activeBookings : pastBookings;
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case "requested": return { color: "bg-orange-100 text-orange-800 border-orange-200", icon: Clock, label: "Requested" };
       case "pending": return { color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock, label: t("bookings.status.pending") };
       case "confirmed": return { color: "bg-blue-100 text-blue-800 border-blue-200", icon: Calendar, label: t("bookings.status.confirmed") };
       case "completed": return { color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle2, label: t("bookings.status.completed") };
