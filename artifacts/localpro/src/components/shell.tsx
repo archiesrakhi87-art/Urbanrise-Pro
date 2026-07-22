@@ -1,6 +1,8 @@
 import React from "react";
 import { LanguageToggle } from "./language-toggle";
 import { BottomNav } from "./bottom-nav";
+import { useQueryClient } from "@tanstack/react-query";
+import { getGetMeQueryKey } from "@workspace/api-client-react";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -29,6 +31,15 @@ export function Shell({ children, showBottomNav = true, title, hideHeader = fals
 }
 
 export function AdminShell({ children, title }: { children: React.ReactNode, title: string }) {
+  const queryClient = useQueryClient();
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    queryClient.setQueryData(getGetMeQueryKey(), null);
+    queryClient.clear();
+    window.location.href = "/login";
+  }
+
   // Desktop-first for Admin
   return (
     <div className="min-h-[100dvh] flex bg-background">
@@ -40,7 +51,15 @@ export function AdminShell({ children, title }: { children: React.ReactNode, tit
           <a href="/admin/disputes" className="text-sm font-medium px-3 py-2 rounded-md hover:bg-muted">Disputes</a>
           <a href="/admin/partners" className="text-sm font-medium px-3 py-2 rounded-md hover:bg-muted">Partners</a>
         </nav>
-        <LanguageToggle />
+        <div className="flex flex-col gap-3 pt-2 border-t border-border">
+          <LanguageToggle />
+          <button
+            onClick={handleLogout}
+            className="w-full text-sm font-medium px-3 py-2 rounded-md text-destructive hover:bg-destructive/10 text-left transition-colors"
+          >
+            ← Log out
+          </button>
+        </div>
       </aside>
       <main className="flex-1 p-8 overflow-y-auto">
         <h2 className="font-serif text-3xl font-bold mb-6">{title}</h2>
