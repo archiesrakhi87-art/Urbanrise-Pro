@@ -1,45 +1,66 @@
-# [Project name]
+# UrbanrisePro
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A hyperlocal services marketplace connecting residents with verified local service providers (electricians, plumbers, cleaners, etc.) in Tier 2/3 Tamil Nadu towns.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `SESSION_SECRET` — express-session secret
+- Required env: `ADMIN_SECRET` — secret for admin login (phone 9000000000)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- Frontend: React + Vite (artifacts/localpro), mobile-first, Wouter routing
+- API: Express 5 (artifacts/api-server, port 8080)
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- API codegen: Orval (from OpenAPI spec at lib/api-spec/openapi.yaml)
 - Build: esbuild (CJS bundle)
+- Session store: connect-pg-simple (sessions table in Postgres)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/localpro/src/pages/` — all frontend pages (resident/, provider/, admin/, public/)
+- `artifacts/localpro/src/components/` — shell, auth-provider, bottom-nav, language toggle
+- `artifacts/api-server/src/routes/` — Express route handlers
+- `artifacts/api-server/src/db/` — Drizzle schema + seed data
+- `lib/api-spec/openapi.yaml` — source-of-truth API contract
+- `lib/api-client-react/` — generated React Query hooks
+- `lib/api-zod/` — generated Zod validation schemas
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- No RLS — access control lives entirely in Express middleware, not the DB layer.
+- OTP is stubbed for MVP — any 6-digit code is accepted; real SMS via Task #7.
+- Sessions in Postgres via connect-pg-simple (must be in esbuild externals list).
+- CORS allows any `*.replit.dev` and `*.replit.app` origin for Replit-managed deployments.
+- Wouter base path driven by `BASE_PATH` env var (set to `/` by artifact.toml).
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Three user roles:
+- **Resident** — browse providers by category, book a service, track booking status, leave reviews, raise disputes.
+- **Provider** — onboard with KYC docs, accept/decline jobs, view upskilling modules, earn Hall of Fame badges.
+- **Admin** — verify provider KYC, resolve disputes, manage local partners, view metrics dashboard.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Internal package/directory names kept as `localpro` (renaming would break the artifact system).
+- Brand name in all user-facing strings: **UrbanrisePro**.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After any change to `artifacts/api-server/src/`, run `node build.mjs` inside `artifacts/api-server/` before restarting.
+- `connect-pg-simple` must remain in esbuild's `external` list or sessions break silently.
+- Admin login: POST /api/auth/admin-login with phone `9000000000` + `ADMIN_SECRET`.
+- Booking status from API is `"requested"` (not `"pending"`) — the frontend active-bookings filter must include it.
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
