@@ -2,6 +2,22 @@
 
 A hyperlocal services marketplace connecting residents with verified local service providers (electricians, plumbers, cleaners, etc.) in Tier 2/3 Tamil Nadu towns.
 
+## Vercel Deployment
+
+The project is configured for Vercel. Connect your GitHub repo to Vercel and set these environment variables in the Vercel dashboard (Settings → Environment Variables):
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | Your Neon connection string |
+| `SESSION_SECRET` | Same secret used in Replit |
+| `ADMIN_SECRET` | Same secret used in Replit |
+| `NODE_ENV` | `production` |
+| `ALLOWED_ORIGINS` | Your Vercel production URL, e.g. `https://your-app.vercel.app` (optional — `*.vercel.app` is allowed automatically) |
+
+Vercel build settings are in `vercel.json`. The build command builds both the API server (esbuild → `artifacts/api-server/dist/`) and the frontend (Vite → `artifacts/localpro/dist/public/`). The Express API is served as a serverless function from `api/index.js`.
+
+Database: schema is managed by Drizzle. The Neon database schema was pushed via `DATABASE_URL="<neon-url>" pnpm --filter @workspace/db run push`. No migration step is needed on deploy — the schema is already in sync.
+
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
