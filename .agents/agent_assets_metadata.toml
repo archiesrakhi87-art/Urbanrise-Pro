@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "cBj9tpqBEMBLgq-XsHI39"
+uri = "file://.env.vercel"
+type = "unspecified"
+title = "Vercel Environment Variables"
+description = "Import in Vercel → Settings → Environment Variables → Import .env. Fill in the three placeholders before importing."
