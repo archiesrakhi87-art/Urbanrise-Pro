@@ -10,6 +10,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust the first proxy (Vercel's edge, Replit's reverse proxy, etc.) so that
+// req.secure is correct and secure session cookies work behind HTTPS termination.
+app.set("trust proxy", 1);
+
 const PgStore = connectPgSimple(session);
 
 app.use(
@@ -54,12 +58,17 @@ const allowedOrigins = new Set([
   ...replitDomains,
 ]);
 
-// Helper: is the origin a Replit-managed domain (*.replit.dev or *.replit.app)?
-// These are controlled by Replit, so it's safe to allow them for this app.
-function isReplitOrigin(origin: string): boolean {
+// Helper: is the origin a trusted managed domain?
+// *.replit.dev / *.replit.app — Replit-managed domains
+// *.vercel.app               — Vercel preview / production deployments
+function isTrustedManagedOrigin(origin: string): boolean {
   try {
     const { hostname } = new URL(origin);
-    return hostname.endsWith(".replit.dev") || hostname.endsWith(".replit.app");
+    return (
+      hostname.endsWith(".replit.dev") ||
+      hostname.endsWith(".replit.app") ||
+      hostname.endsWith(".vercel.app")
+    );
   } catch {
     return false;
   }
@@ -69,7 +78,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow server-to-server (no origin), listed origins, and any Replit domain.
-      if (!origin || allowedOrigins.has(origin) || isReplitOrigin(origin)) {
+      if (!origin || allowedOrigins.has(origin) || isTrustedManagedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin '${origin}' not allowed`));
@@ -98,6 +107,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
+      // Mark the cookie as secure when running behind HTTPS (production/Vercel).
+      // Requires "trust proxy" above to correctly detect req.secure.
+      secure: process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       sameSite: "lax",
     },
