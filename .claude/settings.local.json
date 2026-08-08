@@ -12,7 +12,19 @@
       "Bash(node ./build.mjs)",
       "Bash(SESSION_SECRET=test node -e ' *)",
       "Bash(git commit *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(rm -rf dist api/dist)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm --filter @workspace/api-server run build)",
+      "Bash(PORT=3000 BASE_PATH=/ pnpm --filter @workspace/localpro run build)",
+      "Bash(cp -r artifacts/localpro/dist/public/. dist/)",
+      "Bash(cp -r artifacts/api-server/dist/. api/dist/)",
+      "Bash(node -e ' *)",
+      "Bash(git fetch *)",
+      "Bash(git ls-remote *)",
+      "Bash(git remote *)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)"
     ]
   }
 }
