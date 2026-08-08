@@ -1,0 +1,103 @@
+11:25:41.750 Running build in Washington, D.C., USA (East) – iad1
+11:25:41.751 Build machine configuration: 2 cores, 8 GB
+11:25:41.878 Cloning github.com/archiesrakhi87-art/Urbanrise-Pro (Branch: main, Commit: 8e9dac8)
+11:25:41.879 Previous build caches not available.
+11:25:42.300 Cloning completed: 421.000ms
+11:25:42.775 Running "vercel build"
+11:25:42.833 Vercel CLI 58.1.0
+11:25:43.491 > Detected ENABLE_EXPERIMENTAL_COREPACK=1 and "pnpm@10.26.1" in package.json
+11:25:43.684 Installing dependencies...
+11:25:43.742 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-10.26.1.tgz
+11:25:44.874 Scope: all 9 workspace projects
+11:25:45.038 ../..                                    | Progress: resolved 1, reused 0, downloaded 0, added 0
+11:25:45.111 ../..                                    | +498 ++++++++++++++++++++++++++++++++
+11:25:46.040 ../..                                    | Progress: resolved 498, reused 0, downloaded 88, added 25
+11:25:47.043 ../..                                    | Progress: resolved 498, reused 0, downloaded 207, added 65
+11:25:48.063 ../..                                    | Progress: resolved 498, reused 0, downloaded 300, added 98
+11:25:49.065 ../..                                    | Progress: resolved 498, reused 0, downloaded 307, added 98
+11:25:50.069 ../..                                    | Progress: resolved 498, reused 0, downloaded 314, added 102
+11:25:51.067 ../..                                    | Progress: resolved 498, reused 0, downloaded 393, added 126
+11:25:52.069 ../..                                    | Progress: resolved 498, reused 0, downloaded 487, added 156
+11:25:53.070 ../..                                    | Progress: resolved 498, reused 0, downloaded 498, added 300
+11:25:54.071 ../..                                    | Progress: resolved 498, reused 0, downloaded 498, added 307
+11:25:55.072 ../..                                    | Progress: resolved 498, reused 0, downloaded 498, added 324
+11:25:56.072 ../..                                    | Progress: resolved 498, reused 0, downloaded 498, added 478
+11:25:56.298 ../..                                    | Progress: resolved 498, reused 0, downloaded 498, added 498, done
+11:25:56.619 .../esbuild@0.28.1/node_modules/esbuild postinstall$ node install.js
+11:25:56.704 .../esbuild@0.28.1/node_modules/esbuild postinstall: Done
+11:25:57.134 
+11:25:57.134 dependencies:
+11:25:57.135 + @workspace/api-zod 0.0.0 <- ../../lib/api-zod
+11:25:57.135 + @workspace/db 0.0.0 <- ../../lib/db
+11:25:57.135 + connect-pg-simple 10.0.0
+11:25:57.135 + cookie-parser 1.4.7
+11:25:57.135 + cors 2.8.6
+11:25:57.135 + drizzle-orm 0.45.2
+11:25:57.135 + express 5.2.1
+11:25:57.135 + express-session 1.19.0
+11:25:57.135 + multer 2.2.0
+11:25:57.135 + pino 9.14.0
+11:25:57.135 + pino-http 10.5.0
+11:25:57.136 
+11:25:57.136 devDependencies:
+11:25:57.136 + @types/connect-pg-simple 7.0.3
+11:25:57.136 + @types/cookie-parser 1.4.10
+11:25:57.136 + @types/cors 2.8.19
+11:25:57.137 + @types/express 5.0.6
+11:25:57.137 + @types/express-session 1.19.0
+11:25:57.137 + @types/multer 2.2.0
+11:25:57.137 + @types/node 25.9.5
+11:25:57.137 + esbuild 0.28.1
+11:25:57.139 + esbuild-plugin-pino 2.3.3
+11:25:57.140 + pino-pretty 13.1.3
+11:25:57.140 + thread-stream 3.1.0
+11:25:57.140 
+11:25:57.205 ../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+11:25:57.236 ../.. preinstall: Done
+11:25:57.385 Done in 12.9s using pnpm v10.26.1
+11:25:57.763 Scope: all 9 workspace projects
+11:25:58.971 
+11:25:59.011 ../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+11:25:59.026 ../.. preinstall: Done
+11:25:59.151 Done in 1.6s using pnpm v10.26.1
+11:25:59.514 
+11:25:59.515 > @workspace/api-server@0.0.0 build /vercel/path0/artifacts/api-server
+11:25:59.515 > node ./build.mjs
+11:25:59.516 
+11:26:00.193 
+11:26:00.195   dist/index.mjs                       2.7mb ⚠️
+11:26:00.196   dist/vercel-handler.mjs              2.7mb ⚠️
+11:26:00.196   dist/pino-worker.mjs               153.5kb
+11:26:00.196   dist/pino-file.mjs                 142.1kb
+11:26:00.196   dist/pino-pretty.mjs               114.4kb
+11:26:00.196   dist/thread-stream-worker.mjs        7.4kb
+11:26:00.197   dist/index.mjs.map                   4.7mb
+11:26:00.197   dist/vercel-handler.mjs.map          4.6mb
+11:26:00.197   dist/pino-worker.mjs.map           256.9kb
+11:26:00.197   dist/pino-file.mjs.map             229.0kb
+11:26:00.197   dist/pino-pretty.mjs.map           203.6kb
+11:26:00.197   dist/thread-stream-worker.mjs.map   12.0kb
+11:26:00.197 
+11:26:00.197 ⚡ Done in 618ms
+11:26:00.581 
+11:26:00.581 > @workspace/localpro@0.0.0 build /vercel/path0/artifacts/localpro
+11:26:00.581 > vite build --config vite.config.ts
+11:26:00.581 
+11:26:01.531 vite v7.3.6 building client environment for production...
+11:26:01.617 transforming...
+11:26:02.620 src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+11:26:02.646 src/hooks/use-toast.ts (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+11:26:07.156 ✓ 2708 modules transformed.
+11:26:07.737 rendering chunks...
+11:26:07.752 computing gzip size...
+11:26:07.777 dist/public/index.html                   1.38 kB │ gzip:   0.55 kB
+11:26:07.778 dist/public/assets/index-DNDDrWm4.css  104.16 kB │ gzip:  17.20 kB
+11:26:07.778 dist/public/assets/index-Ch_hQqdq.js   824.61 kB │ gzip: 234.49 kB
+11:26:07.778 
+11:26:07.778 (!) Some chunks are larger than 500 kB after minification. Consider:
+11:26:07.778 - Using dynamic import() to code-split the application
+11:26:07.779 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+11:26:07.779 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+11:26:07.779 ✓ built in 6.22s
+11:26:07.847 cp: cannot stat 'artifacts/localpro/dist/public/.': No such file or directory
+11:26:07.852 Error: Command "pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/localpro run build && cp -r artifacts/localpro/dist/public/. dist/" exited with 1
