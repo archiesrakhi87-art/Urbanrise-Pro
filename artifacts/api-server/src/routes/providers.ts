@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { db, providersTable, usersTable, serviceCategoriesTable } from "@workspace/db";
 import {
   ListProvidersQueryParams,
@@ -16,8 +17,12 @@ import {
 } from "@workspace/api-zod";
 import { logEvent } from "../lib/events";
 
-// Configure multer disk storage
-const uploadsDir = process.env["UPLOADS_DIR"] ?? path.join(process.cwd(), "uploads");
+// Configure multer disk storage.
+// On Vercel the deployed function bundle (process.cwd()) is read-only —
+// only os.tmpdir() ("/tmp") is writable, so default there when running on Vercel.
+const uploadsDir =
+  process.env["UPLOADS_DIR"] ??
+  (process.env["VERCEL"] ? path.join(os.tmpdir(), "uploads") : path.join(process.cwd(), "uploads"));
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
