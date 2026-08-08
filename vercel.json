@@ -3,6 +3,7 @@
   "buildCommand": "pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/localpro run build && cp -r artifacts/localpro/dist/public/. dist/ && cp -r artifacts/api-server/dist/. api/dist/",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
