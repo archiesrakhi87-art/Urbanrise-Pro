@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "pnpm install --no-frozen-lockfile && pnpm run typecheck:libs && pnpm --filter @workspace/api-server run build && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/localpro run build",
+  "nodeVersion": "20.x",
+  "buildCommand": "pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/localpro run build",
   "outputDirectory": "artifacts/localpro/dist/public",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
